@@ -1,9 +1,7 @@
 #pragma once
-#include "piece.h"
-#include "bishop.h"
-#include "rook.h"
+#include "slidingPiece.h"
 
-class Queen : public Piece{
+class Queen : public SlidingPiece{
 public:
     // Constructor
     Queen(Team team, Position pos, SDLHandler* handler);

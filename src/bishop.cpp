@@ -1,7 +1,7 @@
 #include "bishop.h"
 
 Bishop::Bishop(Piece::Team team, Position pos, SDLHandler *handler)
-    : Piece(team, pos, handler, BISHOP) {
+    : SlidingPiece(team, pos, handler, BISHOP) {
     if (team == WHITE){
         filename = "../resources/w_bishop.png";
     }
@@ -9,6 +9,14 @@ Bishop::Bishop(Piece::Team team, Position pos, SDLHandler *handler)
         filename = "../resources/b_bishop.png";
     }
     pieceTexture = handler->loadImageFromPng(filename);
+
+    // Define the possible directions for the bishop's moves
+    std::vector<std::pair<int, int>> bishopDirections = {
+            {-1, -1}, {-1, 1},  // Diagonal directions
+            {1, -1}, {1, 1}
+    };
+
+    setDirections(bishopDirections);
 }
 
 std::vector<Position> Bishop::calculatePseudoMoves() {
@@ -34,8 +42,8 @@ std::vector<Position> Bishop::calculatePseudoMoves() {
 
         // Move along the diagonal until out of bounds
         while (true) {
-            newRow += direction[0];
-            newCol += direction[1];
+            newRow += direction.first;
+            newCol += direction.second;
 
             // Check if the new position is within bounds (assuming a chessboard)
             if (isOutOfBounds(newRow, newCol)) {

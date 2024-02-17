@@ -14,7 +14,9 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/bishop.cpp
         src/knight.cpp
         src/queen.cpp
-        src/king.cpp)
+        src/king.cpp
+        src/slidingPiece.h
+)
 
 # --- SDL2 SETUP ---
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)

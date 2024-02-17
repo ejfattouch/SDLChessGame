@@ -48,6 +48,9 @@ public:
 
     void renderAllPieces();
     void renderAllPossibleMoves(const std::vector<Position>&);
+
+private:
+    std::vector<Position> calculateSlidingPieceLegalMove(std::vector<std::pair<int,int>>, Piece*);
 };
 
 inline SDL_Rect createRectangle(int x, int y, int h, int w){

@@ -190,12 +190,13 @@ void ChessBoard::setBoardOrientation(int orientation) {
 }
 
 std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
-    std::vector<Position> pseudoLegalMoves = piece->calculatePseudoMoves();
+    std::vector<Position> pseudoLegalMoves;
     std::vector<Position> legalMoves {};
     Piece::Team pTeam = piece->getTeam();
 
     switch (piece->getPieceType()){
         case Piece::KING:
+            pseudoLegalMoves = piece->calculatePseudoMoves();
             for (Position p : pseudoLegalMoves){
                 int x = p.xCoord;
                 int y = p.yCoord;
@@ -213,6 +214,7 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
             }
             break;
         case Piece::KNIGHT:
+            pseudoLegalMoves = piece->calculatePseudoMoves();
             for (Position p : pseudoLegalMoves){
                 Piece* piecePtr = boardArr[p.xCoord][p.yCoord];
                 if (piecePtr == nullptr){
@@ -224,17 +226,17 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
             }
             break;
         case Piece::ROOK:
-            legalMoves = piece->calculatePseudoMoves();
+            legalMoves = calculateSlidingPieceLegalMove(dynamic_cast<Rook*>(piece)->getDirections(), piece);
             break;
         case Piece::BISHOP:
-            legalMoves = piece->calculatePseudoMoves();
+            legalMoves = calculateSlidingPieceLegalMove(dynamic_cast<Bishop*>(piece)->getDirections(), piece);
             break;
         case Piece::QUEEN:
-            legalMoves = piece->calculatePseudoMoves();
+            legalMoves = calculateSlidingPieceLegalMove(dynamic_cast<Queen*>(piece)->getDirections(), piece);
             break;
         case Piece::PAWN:
             Position pawnStartPos = piece->getPosition();
-
+            pseudoLegalMoves = piece->calculatePseudoMoves();
             for (Position p : pseudoLegalMoves){
                 // Check for capture
                 if (p.xCoord != pawnStartPos.xCoord){
@@ -261,6 +263,43 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
                 }
             }
             break;
+    }
+
+    return legalMoves;
+}
+
+std::vector<Position> ChessBoard::calculateSlidingPieceLegalMove(std::vector<std::pair<int, int>> directions, Piece* piece) {
+    Position pPos = piece->getPosition();
+    std::vector<Position> legalMoves;
+
+    for (const auto& direction : directions) {
+        int newRow = pPos.xCoord;
+        int newCol = pPos.yCoord;
+
+        // Move along the direction until out of bounds
+        while (true) {
+            newRow += direction.first;
+            newCol += direction.second;
+
+            // Check if the new position is within bounds (assuming a chessboard)
+            if (Piece::isOutOfBounds(newRow, newCol)) {
+                break;  // Stop if out of bounds
+            }
+            Piece* pieceOnBoard = boardArr[newRow][newCol];
+
+            if (pieceOnBoard != nullptr){
+                if (pieceOnBoard->getTeam() != piece->getTeam()){
+                    legalMoves.push_back(Position{newRow, newCol}); // Capture can be added to legal moves
+                    break;
+                }
+                else{
+                    break;
+                }
+            }
+
+            Position newPosition{newRow, newCol};
+            legalMoves.push_back(newPosition);
+        }
     }
 
     return legalMoves;
