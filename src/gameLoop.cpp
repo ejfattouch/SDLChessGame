@@ -2,22 +2,16 @@
 #include <memory>
 #include <iostream>
 
+gameLoop::gameLoop()
+: running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
+    chessBoard = std::make_unique<ChessBoard>(&handler);
+}
+
 void gameLoop::run() {
-    SDLHandler handler;
-    // Initial rendering of the board
-    handler.drawBoard();
-    // Initializes the board with the default starting position
-    std::unique_ptr<ChessBoard> chessBoard = std::make_unique<ChessBoard>(&handler);
-    chessBoard->renderAllPieces();
-    handler.renderFrame();
 
-    bool running = true;
-    bool firstClickOnPiece = false;
+    // Initial rendering
+    renderGameElements();
 
-    Piece* pieceAtFirstPos = nullptr;
-    Position squarePos {0, 0};
-
-    std::vector<Position> v = {};
     while (running) {
         // SDL_WaitEvent() pauses cpu execution until the next event is recorded.
         while (SDL_WaitEvent(&handler.event)) {
@@ -26,26 +20,7 @@ void gameLoop::run() {
                 break;
             }
             else if (handler.event.type == SDL_MOUSEBUTTONDOWN){
-                Position piecePos = chessBoard->getPositionOfPieceWOrientation();
-                squarePos = handler.getPositionOnScreen();
-
-                if (!firstClickOnPiece){
-                    if (!chessBoard->isSquareEmpty(piecePos)){
-                        pieceAtFirstPos = chessBoard->getPieceAtCoord(piecePos);
-
-                        v = chessBoard->calculateLegalMoves(pieceAtFirstPos);
-
-                        firstClickOnPiece = true;
-                    }
-                }
-                else{
-                    // Check if the move is contained in the list of possible moves for the piece
-                    if (chessBoard->canMoveTo(v, piecePos)){
-                        chessBoard->moveTo(pieceAtFirstPos, piecePos);
-                    }
-//                    chessBoard->flipBoardOrientation();
-                    firstClickOnPiece = false;
-                }
+                mouseDownEvent();
             }
             else if (handler.event.type == SDL_KEYUP){
                 // If 'f' is pressed, flip the board
@@ -55,14 +30,46 @@ void gameLoop::run() {
                 }
             }
             // Clear the renderer then render all the pieces after every frame
-            SDL_RenderClear(handler.renderer);
-            handler.drawBoard();
-            if (firstClickOnPiece){
-                handler.drawDarkerSquare(squarePos.xCoord, squarePos.yCoord);
-                chessBoard->renderAllPossibleMoves(v);
-            }
-            chessBoard->renderAllPieces();
-            handler.renderFrame();
+            renderGameElements();
         }
     }
 }
+
+void gameLoop::renderGameElements() {
+    SDL_RenderClear(handler.renderer);
+    handler.drawBoard();
+    if (firstClickOnPiece){
+        handler.drawDarkerSquare(squarePos.xCoord, squarePos.yCoord);
+        chessBoard->renderAllPossibleMoves(v);
+    }
+    chessBoard->renderAllPieces();
+    handler.renderFrame();
+}
+
+void gameLoop::mouseDownEvent() {
+    Position piecePos = chessBoard->getPositionOfPieceWOrientation();
+    squarePos = handler.getPositionOnScreen();
+
+    if (!firstClickOnPiece){
+        if (!chessBoard->isSquareEmpty(piecePos)){
+            pieceAtFirstPos = chessBoard->getPieceAtCoord(piecePos);
+
+            // Check if the piece is of the right team
+            if (pieceAtFirstPos->getTeam() == chessBoard->getCurrentTurn()){
+                v = chessBoard->calculateLegalMoves(pieceAtFirstPos);
+
+                firstClickOnPiece = true;
+            }
+        }
+    }
+    else{
+        // Check if the move is contained in the list of possible moves for the piece
+        if (chessBoard->canMoveTo(v, piecePos)){
+            chessBoard->moveTo(pieceAtFirstPos, piecePos);
+        }
+        //chessBoard->flipBoardOrientation();
+        firstClickOnPiece = false;
+    }
+}
+
+

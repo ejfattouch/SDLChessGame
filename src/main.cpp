@@ -1,6 +1,8 @@
 #include "gameLoop.h"
 
 int main(int argc, char* args []) {
-    gameLoop::run();
+    gameLoop game{};
+    game.run();
+
     return 0;
 }
