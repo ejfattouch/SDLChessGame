@@ -27,8 +27,6 @@ public:
     // https://www.chess.com/terms/fen-chess#
     void getPosFromFEN(const std::string&);
     std::string getFENFromPos();
-    // Initializes the starting position with the starting FEN
-    void initStartingPosition();
 
     Piece* getPieceAtCoord(Position p) {return boardArr[p.xCoord][p.yCoord];}
     static bool canMoveTo(const std::vector<Position>&, Position);
@@ -51,6 +49,12 @@ public:
 
 private:
     std::vector<Position> calculateSlidingPieceLegalMove(std::vector<std::pair<int,int>>, Piece*);
+    void changePlayerTurn();
+
+    // Initializes the starting position with the starting FEN
+    void initStartingPosition();
+
+    bool checkForEnPassantPawns(Piece*);
 };
 
 inline SDL_Rect createRectangle(int x, int y, int h, int w){

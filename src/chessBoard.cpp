@@ -105,25 +105,49 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     Position startPos = piece->getPosition();
     piece->setPosition(endPos);
 
-    // Check if piece is king and deactivate castling if true
-    if (piece->getPieceType() == Piece::KING){
-        King* kingPtr = dynamic_cast<King *>(piece);
-        kingPtr->deactivateCastling();
-    }
-
     // Set the square where the piece departed to nullptr
     boardArr[startPos.xCoord][startPos.yCoord] = nullptr;
 
     int x = endPos.xCoord;
     int y = endPos.yCoord;
 
+    bool squareWasEmpty = true;
     // If piece is captured then delete the piece
     if (boardArr[x][y] != nullptr){
+        squareWasEmpty = false;
         delete boardArr[x][y];
     }
     // Move the piece to the desired square
     boardArr[x][y] = piece;
 
+    // Check if piece is king and deactivate castling if true
+    Piece::PieceType pType = piece->getPieceType();
+    if (pType == Piece::KING){
+        King* kingPtr = dynamic_cast<King *>(piece);
+        kingPtr->deactivateCastling();
+    }
+    else if (pType == Piece::PAWN){
+        // Check if move enables en passant
+        checkForEnPassantPawns(piece);
+
+       // If the pawn moved to an empty square check if there is a pawn underneath it
+        if (squareWasEmpty){
+            // If there is a pawn underneath it then delete it as it was an en passant
+            int checkY = piece->getTeam() == Piece::WHITE ? y-1 : y+1;
+            Piece* pieceUnderPawn = boardArr[x][checkY];
+            if (pieceUnderPawn != nullptr){
+                if (pieceUnderPawn->getPieceType() == Piece::PAWN){
+                    delete pieceUnderPawn;
+                    boardArr[x][checkY] = nullptr;
+                }
+            }
+        }
+
+        Pawn* pawn = dynamic_cast<Pawn*>(piece);
+        pawn->deactivateEnPassant();
+    }
+
+    changePlayerTurn();
 }
 
 ChessBoard::~ChessBoard() {
@@ -262,6 +286,13 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
                     }
                 }
             }
+            // Checking for enPassant
+            Position enPassant = dynamic_cast<Pawn*>(piece)->getEnPassantMove();
+
+            if (enPassant.yCoord != 0){
+                legalMoves.push_back(enPassant);
+            }
+
             break;
     }
 
@@ -304,3 +335,50 @@ std::vector<Position> ChessBoard::calculateSlidingPieceLegalMove(std::vector<std
 
     return legalMoves;
 }
+
+void ChessBoard::changePlayerTurn() {
+    currentTurn = currentTurn == Piece::WHITE ? Piece::BLACK : Piece::WHITE;
+}
+
+bool ChessBoard::checkForEnPassantPawns(Piece* initPawn) {
+    Position initPos = initPawn->getPosition();
+    Piece::Team initTeam = initPawn->getTeam();
+
+    int x = initPos.xCoord;
+    int y = initPos.yCoord;
+
+    Piece* rightPiece = nullptr;
+    Piece* leftPiece = nullptr;
+    if ((y == 3 && initTeam == Piece::WHITE) || (y==4 && initTeam == Piece::BLACK)){
+        if (x == 0){
+            // Check only right piece
+            rightPiece = boardArr[x+1][y];
+        }
+        else if (x == 7){
+            leftPiece = boardArr[x-1][y];
+        }
+        else{
+            leftPiece = boardArr[x-1][y];
+            rightPiece = boardArr[x+1][y];
+        }
+        Piece* tempArr[2] = {leftPiece, rightPiece};
+
+        for (int i = 0; i < 2; i++){
+            Piece* p = tempArr[i];
+            if (p != nullptr){
+                // Check if the piece on the side is a pawn of the opposite team
+                if (p->getPieceType() == Piece::PAWN && p->getTeam() != initTeam){
+                    Pawn* sidePawn = dynamic_cast<Pawn*>(p);
+                    if (i == 0){
+                        sidePawn->activateEnPassant(RIGHT_EN_PASSANT);
+                    }
+                    else{
+                        sidePawn->activateEnPassant(LEFT_EN_PASSANT);
+                    }
+                }
+            }
+        }
+
+    }
+}
+

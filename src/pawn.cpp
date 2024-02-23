@@ -66,3 +66,25 @@ std::vector<Position> Pawn::calculatePseudoMoves() {
 
     return pseudoMoves;
 }
+
+void Pawn::activateEnPassant(int direction) {
+    if (direction == LEFT_EN_PASSANT){
+        leftEnPassant = true;
+    }
+    else{
+        rightEnPassant = true;
+    }
+
+}
+
+Position Pawn::getEnPassantMove() {
+    int y = team == Piece::WHITE ? 5 : 2;
+
+    if (leftEnPassant){
+        return Position{pPos.xCoord-1, y};
+    }
+    else if (rightEnPassant){
+        return Position{pPos.xCoord+1, y};
+    }
+    return {};
+}
