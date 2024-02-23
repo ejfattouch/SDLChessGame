@@ -2,7 +2,6 @@
 
 Piece::Piece(Piece::Team team, Position pos, SDLHandler *handler, Piece::PieceType type)
     : team(team), pPos(pos), pieceHandler(handler), pType(type){
-    pieceTexture = nullptr;
 }
 
 Piece::~Piece() {
@@ -12,11 +11,5 @@ Piece::~Piece() {
 }
 
 bool Piece::isOutOfBounds(int rank, int file) {
-    if (rank > 7 || rank < 0 || file > 7 || file < 0){
-        return true;
-    }
-    else{
-        return false;
-
-    }
+    return rank > 7 || rank < 0 || file > 7 || file < 0;
 }

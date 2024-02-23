@@ -10,7 +10,7 @@ public:
 
 protected:
     std::string filename;
-    SDL_Texture* pieceTexture;
+    SDL_Texture* pieceTexture = nullptr;
     SDLHandler* pieceHandler;
 
     Team team;
