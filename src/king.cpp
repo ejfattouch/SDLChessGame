@@ -24,7 +24,7 @@ std::vector<Position> King::calculatePseudoMoves() {
      * To calculate all possible pseudoMoves for the king we check every square
      * with distance 1 from the starting square of the king and remove any out of bounds targets.
      */
-    std::vector<Position> legalMoves;
+    std::vector<Position> pseudoMoves;
 
     int offsets[][2] = {
         {-1, -1}, {-1, 0}, {-1, 1},
@@ -40,13 +40,8 @@ std::vector<Position> King::calculatePseudoMoves() {
             continue;
         }
 
-        legalMoves.push_back(Position{newRank, newFile});
+        pseudoMoves.push_back(Position{newRank, newFile});
     }
 
-    if (!hasMoved()){
-        legalMoves.push_back(Position{pPos.xCoord+2, pPos.yCoord});
-        legalMoves.push_back(Position{pPos.xCoord-2, pPos.yCoord});
-    }
-
-    return legalMoves;
+    return pseudoMoves;
 }
