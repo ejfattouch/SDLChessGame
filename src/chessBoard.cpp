@@ -24,34 +24,53 @@ void ChessBoard::getPosFromFEN(const std::string& fen) {
                 Position pos{};
                 pos.xCoord = file;
                 pos.yCoord = rank;
+
+                Piece* creatorPiece;
                 switch (tolower(i)) {
                     case 'r':
                         // create rook piece
-                        boardArr[file][rank] = new Rook(team, pos, handler);
+                        creatorPiece = new Rook(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
                     case 'p':
                         // create pawn piece
-                        boardArr[file][rank] = new Pawn(team, pos, handler);
+                        creatorPiece = new Pawn(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
                     case 'b':
                         // create bishop
-                        boardArr[file][rank] = new Bishop(team, pos, handler);
+                        creatorPiece = new Bishop(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
                     case 'n':
                         // create knight
-                        boardArr[file][rank] = new Knight(team, pos, handler);
+                        creatorPiece = new Knight(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
                     case 'q':
                         // create queen
-                        boardArr[file][rank] = new Queen(team, pos, handler);
+                        creatorPiece = new Queen(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
                     case 'k':
                         // create king
-                        boardArr[file][rank] = new King(team, pos, handler);
+                        creatorPiece = new King(team, pos, handler);
+                        boardArr[file][rank] = creatorPiece;
                         break;
-                    default:
-                        break;
+
                 }
+                if (creatorPiece->getPieceType() != Piece::KING){
+                    addPieceToPieceList(creatorPiece);
+                }
+                else{
+                    if (creatorPiece->getTeam() == Piece::WHITE){
+                        whiteKing = dynamic_cast<King *>(creatorPiece);
+                    }
+                    else{
+                        blackKing = dynamic_cast<King *>(creatorPiece);
+                    }
+                }
+
                 file++;
             }
         }
@@ -114,8 +133,27 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     bool squareWasEmpty = true;
     // If piece is captured then delete the piece
     if (boardArr[x][y] != nullptr){
+        Piece* capturedPiece = boardArr[x][y];
+
+        if (capturedPiece->getTeam() == Piece::WHITE){
+            for (int i = 0; i < whitePieces.size(); i++){
+                if (whitePieces[i] == capturedPiece){
+                    whitePieces.erase(whitePieces.begin() + i);
+                    break;
+                }
+            }
+        }
+        else {
+            for (int i = 0; i < blackPieces.size(); i++){
+                if (blackPieces[i] == capturedPiece){
+                    blackPieces.erase(blackPieces.begin() + i);
+                    break;
+                }
+            }
+        }
+
         squareWasEmpty = false;
-        delete boardArr[x][y];
+        delete capturedPiece;
     }
     // Move the piece to the desired square
     boardArr[x][y] = piece;
@@ -129,7 +167,6 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     else if (pType == Piece::PAWN){
         // Check if move enables en passant
         checkForEnPassantPawns(piece);
-
        // If the pawn moved to an empty square check if there is a pawn underneath it
         if (squareWasEmpty){
             // If there is a pawn underneath it then delete it as it was an en passant
@@ -148,6 +185,13 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     }
 
     changePlayerTurn();
+
+    if (checkForChecks(Piece::WHITE)){
+        std::cout << "White is in check" << std::endl;
+    }
+    if (checkForChecks(Piece::BLACK)){
+        std::cout << "Black is in check" << std::endl;
+    }
 }
 
 ChessBoard::~ChessBoard() {
@@ -375,10 +419,44 @@ bool ChessBoard::checkForEnPassantPawns(Piece* initPawn) {
                     else{
                         sidePawn->activateEnPassant(LEFT_EN_PASSANT);
                     }
+                    return true;
                 }
             }
         }
-
+        return false;
     }
 }
 
+bool ChessBoard::checkForChecks(Piece::Team pTeam) {
+    std::vector<Piece*> v;
+    King* king;
+
+    if (pTeam == Piece::WHITE){
+        v = blackPieces;
+        king = whiteKing;
+    }
+    else{
+        v = whitePieces;
+        king = blackKing;
+    }
+    for (Piece* ennemyPiece: v){
+        std::vector<Position> pseudoMoves = calculateLegalMoves(ennemyPiece);
+
+        auto it = std::find(pseudoMoves.begin(), pseudoMoves.end(), king->getPosition());
+
+        if (it != pseudoMoves.end()){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void ChessBoard::addPieceToPieceList(Piece* piece) {
+    if (piece->getTeam() == Piece::WHITE){
+        whitePieces.push_back(piece);
+    }
+    else{
+        blackPieces.push_back(piece);
+    }
+}

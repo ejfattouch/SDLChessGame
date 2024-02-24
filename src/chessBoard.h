@@ -18,6 +18,13 @@ private:
     // Which direction the board is displayed. 0 is white on bottom, 1 is black on bottom
     int boardOrientation = 0;
 
+    // Vector to store the pieces of each team
+    std::vector<Piece*> blackPieces;
+    std::vector<Piece*> whitePieces;
+
+    King* blackKing;
+    King* whiteKing;
+
 public:
     ChessBoard(SDLHandler* handler, std::string fen);
     explicit ChessBoard(SDLHandler* handler);
@@ -55,6 +62,8 @@ private:
     void initStartingPosition();
 
     bool checkForEnPassantPawns(Piece*);
+    bool checkForChecks(Piece::Team);
+    void addPieceToPieceList(Piece*);
 };
 
 inline SDL_Rect createRectangle(int x, int y, int h, int w){
