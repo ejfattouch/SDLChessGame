@@ -66,6 +66,12 @@ void gameLoop::mouseDownEvent() {
         // Check if the move is contained in the list of possible moves for the piece
         if (chessBoard->canMoveTo(v, piecePos)){
             chessBoard->moveTo(pieceAtFirstPos, piecePos);
+
+            if (chessBoard->getCurrentTurn() == Piece::WHITE){
+                turnNumber++;
+            }
+
+            std::cout << "Turn: " << turnNumber << " " << chessBoard->getFENFromPos() << std::endl;
         }
         //chessBoard->flipBoardOrientation();
         firstClickOnPiece = false;

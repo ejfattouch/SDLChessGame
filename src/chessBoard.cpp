@@ -82,7 +82,75 @@ void ChessBoard::getPosFromFEN(const std::string& fen) {
 
 
 std::string ChessBoard::getFENFromPos() {
-    return "";
+    std::string positionFEN;
+    for (int rank = 7; rank >= 0; rank--){
+        int numOfEmptySquares = 0 ;
+        for (int file = 0; file < 8; file++){
+            Piece* pieceOnSquare = boardArr[file][rank];
+
+            if (pieceOnSquare == nullptr){
+                numOfEmptySquares++;
+            }
+            if (rank == 7 || pieceOnSquare != nullptr){
+                if (numOfEmptySquares > 0){
+                    positionFEN += std::to_string(numOfEmptySquares);
+                    numOfEmptySquares = 0;
+                }
+            }
+
+            if (pieceOnSquare != nullptr){
+                Piece::PieceType pType = pieceOnSquare->getPieceType();
+                Piece::Team pTeam = pieceOnSquare->getTeam();
+
+                char fenChar;
+                switch (pType) {
+                    case Piece::PAWN:
+                        fenChar = 'p';
+                        break;
+                    case Piece::ROOK:
+                        fenChar = 'r';
+                        break;
+                    case Piece::BISHOP:
+                        fenChar = 'b';
+                        break;
+                    case Piece::KNIGHT:
+                        fenChar = 'n';
+                        break;
+                    case Piece::KING:
+                        fenChar = 'k';
+                        break;
+                    case Piece::QUEEN:
+                        fenChar = 'q';
+                        break;
+                    default:
+                        std::cout << "Piece Type was Either NULL or Unrecognized";
+                        break;
+                }
+                if (pTeam == Piece::WHITE){
+                    fenChar = toupper(fenChar);
+                }
+                positionFEN.push_back(fenChar);
+            }
+        }
+        if (numOfEmptySquares > 0){
+            positionFEN += std::to_string(numOfEmptySquares);
+        }
+
+        if (rank != 0){
+            positionFEN.push_back('/');
+        }
+    }
+
+    positionFEN.push_back(' ');
+
+    if (currentTurn == Piece::WHITE){
+        positionFEN.push_back('w');
+    }
+    else{
+        positionFEN.push_back('b');
+    }
+
+    return positionFEN;
 }
 
 void ChessBoard::initStartingPosition() {

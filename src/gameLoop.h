@@ -16,6 +16,8 @@ private:
 
     Piece* pieceAtFirstPos;
     Position squarePos {0, 0};
+
+    int turnNumber = 1;
 public:
     gameLoop();
     void run();
