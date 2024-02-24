@@ -14,6 +14,6 @@ public:
     Pawn(Team team, Position pos, SDLHandler* handler);
     std::vector<Position> calculatePseudoMoves() override;
     void activateEnPassant(int);
-    void deactivateEnPassant() {rightEnPassant = false; leftEnPassant = false;}
+    void deactivateEnPassant() {rightEnPassant = false, leftEnPassant = false;}
     Position getEnPassantMove();
 };
