@@ -64,6 +64,7 @@ private:
     bool checkForEnPassantPawns(Piece*);
     bool checkForChecks(Piece::Team);
     void addPieceToPieceList(Piece*);
+    void capturePiece(Piece*);
 };
 
 inline SDL_Rect createRectangle(int x, int y, int h, int w){

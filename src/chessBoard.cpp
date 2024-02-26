@@ -202,26 +202,8 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     // If piece is captured then delete the piece
     if (boardArr[x][y] != nullptr){
         Piece* capturedPiece = boardArr[x][y];
-
-        if (capturedPiece->getTeam() == Piece::WHITE){
-            for (int i = 0; i < whitePieces.size(); i++){
-                if (whitePieces[i] == capturedPiece){
-                    whitePieces.erase(whitePieces.begin() + i);
-                    break;
-                }
-            }
-        }
-        else {
-            for (int i = 0; i < blackPieces.size(); i++){
-                if (blackPieces[i] == capturedPiece){
-                    blackPieces.erase(blackPieces.begin() + i);
-                    break;
-                }
-            }
-        }
-
+        capturePiece(capturedPiece);
         squareWasEmpty = false;
-        delete capturedPiece;
     }
     // Move the piece to the desired square
     boardArr[x][y] = piece;
@@ -242,7 +224,7 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
             Piece* pieceUnderPawn = boardArr[x][checkY];
             if (pieceUnderPawn != nullptr){
                 if (pieceUnderPawn->getPieceType() == Piece::PAWN){
-                    delete pieceUnderPawn;
+                    capturePiece(pieceUnderPawn);
                     boardArr[x][checkY] = nullptr;
                 }
             }
@@ -527,4 +509,25 @@ void ChessBoard::addPieceToPieceList(Piece* piece) {
     else{
         blackPieces.push_back(piece);
     }
+}
+
+void ChessBoard::capturePiece(Piece * capturedPiece) {
+    if (capturedPiece->getTeam() == Piece::WHITE){
+        for (int i = 0; i < whitePieces.size(); i++){
+            if (whitePieces[i] == capturedPiece){
+                whitePieces.erase(whitePieces.begin() + i);
+                break;
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < blackPieces.size(); i++){
+            if (blackPieces[i] == capturedPiece){
+                blackPieces.erase(blackPieces.begin() + i);
+                break;
+            }
+        }
+    }
+
+    delete capturedPiece;
 }
