@@ -60,7 +60,7 @@ void ChessBoard::getPosFromFEN(const std::string& fen) {
 
                 }
                 if (creatorPiece->getPieceType() != Piece::KING){
-                    addPieceToPieceList(creatorPiece);
+                    addToPieceList(creatorPiece);
                 }
                 else{
                     if (creatorPiece->getTeam() == Piece::WHITE){
@@ -150,12 +150,13 @@ std::string ChessBoard::getFENFromPos() {
         positionFEN.push_back('b');
     }
 
+    FEN = positionFEN;
     return positionFEN;
 }
 
 void ChessBoard::initStartingPosition() {
-    std::string startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
-    getPosFromFEN(startingFen);
+    FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
+    getPosFromFEN(FEN);
 }
 
 ChessBoard::ChessBoard(SDLHandler *handler, std::string fen)
@@ -167,6 +168,35 @@ ChessBoard::ChessBoard(SDLHandler *handler, std::string fen)
 ChessBoard::ChessBoard(SDLHandler *handler)
     : handler(handler){
     initStartingPosition();
+}
+
+ChessBoard::ChessBoard(const ChessBoard &other) {
+    boardOrientation = other.boardOrientation;
+    currentTurn = other.currentTurn;
+
+    // Copy pieces on the board
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            if (other.boardArr[i][j] != nullptr) {
+                boardArr[i][j] = other.boardArr[i][j]->clone();
+            } else {
+                boardArr[i][j] = nullptr;
+            }
+        }
+    }
+
+    // Copy black pieces
+    for (Piece* piece : other.blackPieces) {
+        blackPieces.push_back(piece->clone());
+    }
+
+    // Copy white pieces
+    for (Piece* piece : other.whitePieces) {
+        whitePieces.push_back(piece->clone());
+    }
+
+    blackKing = other.blackKing->clone();
+    whiteKing = other.whiteKing->clone();
 }
 
 void ChessBoard::renderAllPieces() {
@@ -181,7 +211,10 @@ void ChessBoard::renderAllPieces() {
                 // Draw pawns smaller than other pieces
                 int offset = piece->getPieceType() == Piece::PAWN ? 15 : 8;
 
-                SDL_Rect container = createRectangle((abs(7-inverseCoordsVar - x))*screenW/8 + offset, (abs(inverseCoordsVar-y)*screenH/8 + offset), screenH/8-(2*offset), screenW/8-(2*offset));
+                SDL_Rect container = createRectangle((abs(7-inverseCoordsVar - x))*screenW/8 + offset,
+                                                     (abs(inverseCoordsVar-y)*screenH/8 + offset),
+                                                     screenH/8-(2*offset),
+                                                     screenW/8-(2*offset));
                 handler->renderPiece(container, piece->getReferenceToTexture());
             }
         }
@@ -211,7 +244,7 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     // Check if piece is king and deactivate castling if true
     Piece::PieceType pType = piece->getPieceType();
     if (pType == Piece::KING){
-        King* kingPtr = dynamic_cast<King *>(piece);
+        King* kingPtr = dynamic_cast<King*>(piece);
         kingPtr->deactivateCastling();
     }
     else if (pType == Piece::PAWN){
@@ -235,13 +268,6 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
     }
 
     changePlayerTurn();
-
-    if (checkForChecks(Piece::WHITE)){
-        std::cout << "White is in check" << std::endl;
-    }
-    if (checkForChecks(Piece::BLACK)){
-        std::cout << "Black is in check" << std::endl;
-    }
 }
 
 ChessBoard::~ChessBoard() {
@@ -312,6 +338,7 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
     std::vector<Position> legalMoves {};
     Piece::Team pTeam = piece->getTeam();
 
+    Position initPos = piece->getPosition();
     switch (piece->getPieceType()){
         case Piece::KING:
             pseudoLegalMoves = piece->calculatePseudoMoves();
@@ -321,14 +348,34 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
 
                 // Checks for regular king moves
                 if (boardArr[x][y] == nullptr){
-                    legalMoves.push_back(p);
+                    moveTo(piece,p);
+
+                    if (!checkForChecks(piece->getTeam())){
+                        legalMoves.push_back(p);
+                    }
+
+                    moveTo(piece, initPos);
                     continue;
                 }
                 else if (boardArr[x][y]->getTeam() != pTeam){
-                    legalMoves.push_back(p);
+                    Piece* tempPiece = boardArr[x][y];
+
+                    boardArr[x][y] = piece;
+                    boardArr[initPos.xCoord][initPos.yCoord] = nullptr;
+
+                    piece->setPosition(p);
+
+                    if (!checkForChecks(piece->getTeam())){
+                        legalMoves.push_back(p);
+                    }
+
+                    boardArr[initPos.xCoord][initPos.yCoord] = piece;
+                    piece->setPosition(initPos);
+                    boardArr[x][y] = tempPiece;
                 }
 
-                // Implement checks for castling and checks.
+
+                // Implement verification for castling
             }
             break;
         case Piece::KNIGHT:
@@ -478,23 +525,34 @@ bool ChessBoard::checkForEnPassantPawns(Piece* initPawn) {
 }
 
 bool ChessBoard::checkForChecks(Piece::Team pTeam) {
-    std::vector<Piece*> v;
+    std::vector<Piece*> ennemyPieces;
     King* king;
+    King* ennemyKing;
 
     if (pTeam == Piece::WHITE){
-        v = blackPieces;
+        ennemyPieces = blackPieces;
         king = whiteKing;
+        ennemyKing = blackKing;
     }
     else{
-        v = whitePieces;
+        ennemyPieces = whitePieces;
         king = blackKing;
+        ennemyKing = whiteKing;
     }
-    for (Piece* ennemyPiece: v){
+
+    Position kingPos = king->getPosition();
+    for (Piece* ennemyPiece: ennemyPieces){
         std::vector<Position> pseudoMoves = calculateLegalMoves(ennemyPiece);
+        for (Position p: pseudoMoves){
+            if (p == kingPos){
+                return true;
+            }
+        }
+    }
 
-        auto it = std::find(pseudoMoves.begin(), pseudoMoves.end(), king->getPosition());
-
-        if (it != pseudoMoves.end()){
+    std::vector<Position> pseudoMoves = ennemyKing->calculatePseudoMoves();
+    for (Position p: pseudoMoves){
+        if (p == kingPos){
             return true;
         }
     }
@@ -502,19 +560,15 @@ bool ChessBoard::checkForChecks(Piece::Team pTeam) {
     return false;
 }
 
-void ChessBoard::addPieceToPieceList(Piece* piece) {
-    if (piece->getTeam() == Piece::WHITE){
-        whitePieces.push_back(piece);
-    }
-    else{
-        blackPieces.push_back(piece);
-    }
+void ChessBoard::capturePiece(Piece* capturedPiece) {
+    removeFromPieceList(capturedPiece);
+    delete capturedPiece;
 }
 
-void ChessBoard::capturePiece(Piece * capturedPiece) {
-    if (capturedPiece->getTeam() == Piece::WHITE){
+void ChessBoard::removeFromPieceList(Piece* piece) {
+    if (piece->getTeam() == Piece::WHITE){
         for (int i = 0; i < whitePieces.size(); i++){
-            if (whitePieces[i] == capturedPiece){
+            if (whitePieces[i] == piece){
                 whitePieces.erase(whitePieces.begin() + i);
                 break;
             }
@@ -522,12 +576,19 @@ void ChessBoard::capturePiece(Piece * capturedPiece) {
     }
     else {
         for (int i = 0; i < blackPieces.size(); i++){
-            if (blackPieces[i] == capturedPiece){
+            if (blackPieces[i] == piece){
                 blackPieces.erase(blackPieces.begin() + i);
                 break;
             }
         }
     }
+}
 
-    delete capturedPiece;
+void ChessBoard::addToPieceList(Piece* piece) {
+    if (piece->getTeam() == Piece::WHITE){
+        whitePieces.push_back(piece);
+    }
+    else{
+        blackPieces.push_back(piece);
+    }
 }

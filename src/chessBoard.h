@@ -18,6 +18,8 @@ private:
     // Which direction the board is displayed. 0 is white on bottom, 1 is black on bottom
     int boardOrientation = 0;
 
+    std::string FEN;
+
     // Vector to store the pieces of each team
     std::vector<Piece*> blackPieces;
     std::vector<Piece*> whitePieces;
@@ -30,12 +32,16 @@ public:
     explicit ChessBoard(SDLHandler* handler);
     ~ChessBoard();
 
+    //Copy Constructor
+    ChessBoard(const ChessBoard &other);
+
     // Handles everything that involves FEN notation
     // https://www.chess.com/terms/fen-chess#
     void getPosFromFEN(const std::string&);
     std::string getFENFromPos();
 
     Piece* getPieceAtCoord(Position p) {return boardArr[p.xCoord][p.yCoord];}
+    void setPieceAtCoord(Piece* piece, Position p) {boardArr[p.xCoord][p.yCoord] = piece;}
     static bool canMoveTo(const std::vector<Position>&, Position);
     void moveTo(Piece*, Position);
     bool isSquareEmpty(Position p){return boardArr[p.xCoord][p.yCoord] == nullptr;}
@@ -49,10 +55,13 @@ public:
     // Returns the position of a piece with respect to the orientation of the board.
     Position getPositionOfPieceWOrientation();
 
-
+    bool checkForChecks(Piece::Team);
 
     void renderAllPieces();
     void renderAllPossibleMoves(const std::vector<Position>&);
+
+    void removeFromPieceList(Piece*);
+    void addToPieceList(Piece*);
 
 private:
     std::vector<Position> calculateSlidingPieceLegalMove(std::vector<std::pair<int,int>>, Piece*);
@@ -62,8 +71,6 @@ private:
     void initStartingPosition();
 
     bool checkForEnPassantPawns(Piece*);
-    bool checkForChecks(Piece::Team);
-    void addPieceToPieceList(Piece*);
     void capturePiece(Piece*);
 };
 

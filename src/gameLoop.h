@@ -24,4 +24,6 @@ public:
 
     void renderGameElements();
     void mouseDownEvent();
+
+    std::vector<Position> calculateLegalMovesWithRespectToChecks(Piece*);
 };

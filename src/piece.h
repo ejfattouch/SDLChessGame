@@ -10,7 +10,7 @@ public:
 
 protected:
     std::string filename;
-    SDL_Texture* pieceTexture = nullptr;
+    SDL_Texture* pieceTexture;
     SDLHandler* pieceHandler;
 
     Team team;
@@ -22,6 +22,7 @@ public:
     Piece(Team team, Position pos, SDLHandler* handler, PieceType type);
     // Copy Constructor
     Piece(const Piece& piece) = default;
+    virtual Piece* clone() const = 0;
     // Destructor
     virtual ~Piece();
 

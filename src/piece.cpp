@@ -6,7 +6,7 @@ Piece::Piece(Piece::Team team, Position pos, SDLHandler *handler, Piece::PieceTy
 
 Piece::~Piece() {
     // Destroy texture and call drawSquare to replace it.
-    SDL_DestroyTexture(pieceTexture);
+//  SDL_DestroyTexture(pieceTexture);
     pieceHandler->drawSquare(pPos.xCoord, pPos.yCoord);
 }
 
