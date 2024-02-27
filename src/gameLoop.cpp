@@ -115,28 +115,26 @@ std::vector<Position> gameLoop::calculateLegalMovesWithRespectToChecks(Piece* pi
             }
         }
 
-        if (initiallyInCheck && currentlyInCheck){
-            Position initialPiecePos = piece->getPosition();
-            Piece* tempPiece = chessBoard->getPieceAtCoord(p);
+        Position initialPiecePos = piece->getPosition();
+        Piece* tempPiece = chessBoard->getPieceAtCoord(p);
 
-            if (tempPiece != nullptr){
-                chessBoard->removeFromPieceList(tempPiece);
+        if (tempPiece != nullptr){
+            chessBoard->removeFromPieceList(tempPiece);
 
-                chessBoard->setPieceAtCoord(piece, p);
-                chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
+            chessBoard->setPieceAtCoord(piece, p);
+            chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
 
-                piece->setPosition(p);
+            piece->setPosition(p);
 
-                if (!chessBoard->checkForChecks(piece->getTeam())){
-                    legalMovesAfterVerif.push_back(p);
-                }
-
-                chessBoard->setPieceAtCoord(piece, initialPiecePos);
-                piece->setPosition(initialPiecePos);
-                chessBoard->setPieceAtCoord(tempPiece, p);
-
-                chessBoard->addToPieceList(tempPiece);
+            if (!chessBoard->checkForChecks(piece->getTeam())){
+                legalMovesAfterVerif.push_back(p);
             }
+
+            chessBoard->setPieceAtCoord(piece, initialPiecePos);
+            piece->setPosition(initialPiecePos);
+            chessBoard->setPieceAtCoord(tempPiece, p);
+
+            chessBoard->addToPieceList(tempPiece);
         }
 
         if (!boardCopy.checkForChecks(pTeam)){
