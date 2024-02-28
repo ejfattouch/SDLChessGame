@@ -12,14 +12,12 @@ Queen::Queen(Piece::Team team, Position pos, SDLHandler *handler)
 
     // Define the possible directions for the queen's moves
     // Combine rook and bishop directions
-    std::vector<std::pair<int, int>> queenDirections = {
+   directions = {
             {-1, 0}, {1, 0},  // Vertical directions
             {0, -1}, {0, 1},   // Horizontal directions
             {-1, -1}, {-1, 1},  // Diagonal directions
             {1, -1}, {1, 1}
     };
-
-    setDirections(queenDirections);
 }
 
 std::vector<Position> Queen::calculatePseudoMoves() {

@@ -10,12 +10,10 @@ Rook::Rook(Piece::Team team, Position pos, SDLHandler *handler)
     }
     pieceTexture = handler->loadImageFromPng(filename);
     // Define the possible directions for the rook's moves
-    std::vector<std::pair<int, int>> rookDirections = {
+    directions = {
             {-1, 0}, {1, 0},  // Vertical directions
             {0, -1}, {0, 1}   // Horizontal directions
     };
-
-    setDirections(rookDirections);
 }
 
 std::vector<Position> Rook::calculatePseudoMoves() {

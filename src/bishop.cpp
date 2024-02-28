@@ -11,12 +11,10 @@ Bishop::Bishop(Piece::Team team, Position pos, SDLHandler *handler)
     pieceTexture = handler->loadImageFromPng(filename);
 
     // Define the possible directions for the bishop's moves
-    std::vector<std::pair<int, int>> bishopDirections = {
+    directions = {
             {-1, -1}, {-1, 1},  // Diagonal directions
             {1, -1}, {1, 1}
     };
-
-    setDirections(bishopDirections);
 }
 
 std::vector<Position> Bishop::calculatePseudoMoves() {

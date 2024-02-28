@@ -10,9 +10,6 @@ public:
     Piece(team, pos, handler, type) {
     }
 
-    void setDirections(std::vector<std::pair<int,int>> dir){
-        directions = std::move(dir);
-    }
     std::vector<std::pair<int,int>> getDirections(){
         return directions;
     }
