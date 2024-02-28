@@ -12,9 +12,6 @@ private:
 public:
     // Constructor
     Pawn(Team team, Position pos, SDLHandler* handler);
-    Pawn* clone() const override{
-        return new Pawn(*this);
-    }
 
     std::vector<Position> calculatePseudoMoves() override;
     void activateEnPassant(int);

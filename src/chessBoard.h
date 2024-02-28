@@ -32,9 +32,6 @@ public:
     explicit ChessBoard(SDLHandler* handler);
     ~ChessBoard();
 
-    //Copy Constructor
-    ChessBoard(const ChessBoard &other);
-
     // Handles everything that involves FEN notation
     // https://www.chess.com/terms/fen-chess#
     void getPosFromFEN(const std::string&);
@@ -43,7 +40,7 @@ public:
     Piece* getPieceAtCoord(Position p) {return boardArr[p.xCoord][p.yCoord];}
     void setPieceAtCoord(Piece* piece, Position p) {boardArr[p.xCoord][p.yCoord] = piece;}
     static bool canMoveTo(const std::vector<Position>&, Position);
-    void moveTo(Piece*, Position);
+    void moveTo(Piece*, Position, bool activateChangeTurn = true);
     bool isSquareEmpty(Position p){return boardArr[p.xCoord][p.yCoord] == nullptr;}
     Piece::Team getCurrentTurn(){return currentTurn;}
 

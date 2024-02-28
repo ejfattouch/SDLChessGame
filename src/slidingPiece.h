@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 #include "piece.h"
 
 class SlidingPiece : public Piece{
@@ -10,7 +11,7 @@ public:
     }
 
     void setDirections(std::vector<std::pair<int,int>> dir){
-        directions = dir;
+        directions = std::move(dir);
     }
     std::vector<std::pair<int,int>> getDirections(){
         return directions;

@@ -170,35 +170,6 @@ ChessBoard::ChessBoard(SDLHandler *handler)
     initStartingPosition();
 }
 
-ChessBoard::ChessBoard(const ChessBoard &other) {
-    boardOrientation = other.boardOrientation;
-    currentTurn = other.currentTurn;
-
-    // Copy pieces on the board
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            if (other.boardArr[i][j] != nullptr) {
-                boardArr[i][j] = other.boardArr[i][j]->clone();
-            } else {
-                boardArr[i][j] = nullptr;
-            }
-        }
-    }
-
-    // Copy black pieces
-    for (Piece* piece : other.blackPieces) {
-        blackPieces.push_back(piece->clone());
-    }
-
-    // Copy white pieces
-    for (Piece* piece : other.whitePieces) {
-        whitePieces.push_back(piece->clone());
-    }
-
-    blackKing = other.blackKing->clone();
-    whiteKing = other.whiteKing->clone();
-}
-
 void ChessBoard::renderAllPieces() {
     int inverseCoordsVar = boardOrientation == 1 ? 0 : 7;
 
@@ -221,7 +192,7 @@ void ChessBoard::renderAllPieces() {
     }
 }
 
-void ChessBoard::moveTo(Piece* piece, Position endPos) {
+void ChessBoard::moveTo(Piece* piece, Position endPos, bool activateChangeTurn) {
     Position startPos = piece->getPosition();
     piece->setPosition(endPos);
 
@@ -266,8 +237,9 @@ void ChessBoard::moveTo(Piece* piece, Position endPos) {
         Pawn* pawn = dynamic_cast<Pawn*>(piece);
         pawn->deactivateEnPassant();
     }
-
-    changePlayerTurn();
+    if (activateChangeTurn){
+        changePlayerTurn();
+    }
 }
 
 ChessBoard::~ChessBoard() {

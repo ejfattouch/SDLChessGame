@@ -22,7 +22,6 @@ public:
     Piece(Team team, Position pos, SDLHandler* handler, PieceType type);
     // Copy Constructor
     Piece(const Piece& piece) = default;
-    virtual Piece* clone() const = 0;
     // Destructor
     virtual ~Piece();
 
