@@ -5,7 +5,7 @@
 gameLoop::gameLoop()
 : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
     chessBoard = std::make_unique<ChessBoard>(&handler);
-//    chessBoard = std::make_unique<ChessBoard>(&handler, "2krr3/4b3/8/8/8/8/8/4K3 w");
+//    chessBoard = std::make_unique<ChessBoard>(&handler, "3k4/8/3bp3/8/3K4/8/8/8 b");
 
 }
 
@@ -96,51 +96,74 @@ std::vector<Position> gameLoop::calculateLegalMovesWithRespectToChecks(Piece* pi
 
     bool initiallyInCheck = chessBoard->checkForChecks(pTeam);
 
-    for (Position p: legalMovesBeforeVerif){
+    if (initiallyInCheck){
+        std::cout << "True" << std::endl;
+    }
+
+    for (Position p: legalMovesBeforeVerif) {
         ChessBoard boardCopy(*chessBoard); // Make a deep copy of the chessboard to simulate moves
 
         // Use copy of piece since in the copied board, the pointers point to different locations
-        Piece* copyEquivalentPiece = boardCopy.getPieceAtCoord(piece->getPosition());
+        Piece *copyEquivalentPiece = boardCopy.getPieceAtCoord(piece->getPosition());
         boardCopy.moveTo(copyEquivalentPiece, p);
 
         bool currentlyInCheck = boardCopy.checkForChecks(pTeam);
 
         // This if statement is a band-aid fix
-        if (piece->getPieceType() == Piece::KING){
-            if (initiallyInCheck){
-                if (currentlyInCheck){
+        if (piece->getPieceType() == Piece::KING) {
+            if (initiallyInCheck) {
+                if (currentlyInCheck) {
                     legalMovesAfterVerif.push_back(p);
+                    continue;
+                }
+                Piece* pieceOnSquare = chessBoard->getPieceAtCoord(p);
+                if (pieceOnSquare != nullptr) {
+                    if (pieceOnSquare->getPieceType() == Piece::PAWN && simulateMoveAndCheckForCheck(piece, p)) {
+                        legalMovesAfterVerif.push_back(p);
+                    }
                 }
                 continue;
             }
         }
 
-        Position initialPiecePos = piece->getPosition();
-        Piece* tempPiece = chessBoard->getPieceAtCoord(p);
-
-        if (tempPiece != nullptr){
-            chessBoard->removeFromPieceList(tempPiece);
-
-            chessBoard->setPieceAtCoord(piece, p);
-            chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
-
-            piece->setPosition(p);
-
-            if (!chessBoard->checkForChecks(piece->getTeam())){
-                legalMovesAfterVerif.push_back(p);
-            }
-
-            chessBoard->setPieceAtCoord(piece, initialPiecePos);
-            piece->setPosition(initialPiecePos);
-            chessBoard->setPieceAtCoord(tempPiece, p);
-
-            chessBoard->addToPieceList(tempPiece);
+        if (simulateMoveAndCheckForCheck(piece, p)){
+            legalMovesAfterVerif.push_back(p);
         }
-
         if (!boardCopy.checkForChecks(pTeam)){
             legalMovesAfterVerif.push_back(p);
         }
+
     }
 
     return legalMovesAfterVerif;
 }
+
+
+bool gameLoop::simulateMoveAndCheckForCheck(Piece *piece, Position p) {
+    bool returnValue = false;
+
+    Position initialPiecePos = piece->getPosition();
+    Piece* tempPiece = chessBoard->getPieceAtCoord(p);
+
+    if (tempPiece != nullptr){
+        chessBoard->removeFromPieceList(tempPiece);
+
+        chessBoard->setPieceAtCoord(piece, p);
+        chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
+
+        piece->setPosition(p);
+
+        if (!chessBoard->checkForChecks(piece->getTeam())){
+            returnValue = true;
+        }
+
+        chessBoard->setPieceAtCoord(piece, initialPiecePos);
+        piece->setPosition(initialPiecePos);
+        chessBoard->setPieceAtCoord(tempPiece, p);
+
+        chessBoard->addToPieceList(tempPiece);
+    }
+
+    return returnValue;
+}
+

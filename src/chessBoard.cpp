@@ -304,13 +304,8 @@ void ChessBoard::renderAllPossibleMoves(const std::vector<Position>& possibleMov
 }
 
 bool ChessBoard::canMoveTo(const std::vector<Position>& positionVector, Position positionToCheck) {
-    for (Position p : positionVector){
-        if (p == positionToCheck){
-            return true;
-        }
-    }
-
-    return false;
+    return std::any_of(positionVector.begin(), positionVector.end(),
+                       [&](const Position& p) { return p == positionToCheck; });
 }
 
 /**
@@ -322,7 +317,7 @@ void ChessBoard::setBoardOrientation(int orientation) {
         std::random_device rd;  // a seed source for the random number engine
         std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
         std::uniform_int_distribution<> distrib(0, 1);
-        boardOrientation = distrib(gen);  // generates number in the range 1..6
+        boardOrientation = distrib(gen);  // generates number in the range {0,1}
     }
     else if (orientation < 0){
         boardOrientation = 1;
@@ -404,16 +399,18 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
             pseudoLegalMoves = piece->calculatePseudoMoves();
             for (Position p : pseudoLegalMoves){
                 // Check for capture
+
+                Piece* pieceOnSquare = boardArr[p.xCoord][p.yCoord];
                 if (p.xCoord != pawnStartPos.xCoord){
-                    if (boardArr[p.xCoord][p.yCoord] == nullptr){
+                    if (pieceOnSquare == nullptr){
                         continue;
                     }
-                    else if (boardArr[p.xCoord][p.yCoord]->getTeam() != pTeam){
+                    else if (pieceOnSquare->getTeam() != pTeam){
                         legalMoves.push_back(p);
                     }
                 }
                 else {
-                    if (boardArr[p.xCoord][p.yCoord] == nullptr) {
+                    if (pieceOnSquare == nullptr) {
                         if (abs(p.yCoord - pawnStartPos.yCoord) == 2) {
                             // If two square move is possible check the in between square first
                             Piece *pPtr = (p.yCoord - pawnStartPos.yCoord) > 0 ? boardArr[p.xCoord][pawnStartPos.yCoord + 1]: boardArr[p.xCoord][pawnStartPos.yCoord - 1];
@@ -551,13 +548,9 @@ bool ChessBoard::checkForChecks(Piece::Team pTeam) {
     }
 
     std::vector<Position> pseudoMoves = ennemyKing->calculatePseudoMoves();
-    for (Position p: pseudoMoves){
-        if (p == kingPos){
-            return true;
-        }
-    }
 
-    return false;
+    return std::any_of(pseudoMoves.begin(), pseudoMoves.end(),
+                       [&](const Position &p) {return p == kingPos;});
 }
 
 void ChessBoard::capturePiece(Piece* capturedPiece) {

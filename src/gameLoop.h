@@ -21,9 +21,9 @@ private:
 public:
     gameLoop();
     void run();
-
+private:
     void renderGameElements();
     void mouseDownEvent();
-
     std::vector<Position> calculateLegalMovesWithRespectToChecks(Piece*);
+    bool simulateMoveAndCheckForCheck(Piece* piece, Position p);
 };
