@@ -9,6 +9,11 @@ gameLoop::gameLoop()
 
 }
 
+gameLoop::gameLoop(std::string FEN)
+        : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
+    chessBoard = std::make_unique<ChessBoard>(&handler, FEN);
+}
+
 void gameLoop::run() {
 
     // Initial rendering
@@ -128,6 +133,42 @@ bool gameLoop::simulateMoveAndCheckForCheck(Piece *piece, Position p) {
         chessBoard->setPieceAtCoord(tempPiece, p);
 
         chessBoard->addToPieceList(tempPiece);
+    }
+    else if(piece->getPieceType() == Piece::PAWN){
+        Pawn* pawn = dynamic_cast<Pawn*>(piece);
+        Position enPassant = pawn->getEnPassantMove();
+
+        if (p == enPassant){
+            int y = pawn->getTeam() == Piece::WHITE ? 4 : 3;
+            Position tempPos {p.xCoord, y};
+            tempPiece = chessBoard->getPieceAtCoord(tempPos);
+
+            chessBoard->removeFromPieceList(tempPiece);
+            chessBoard->setPieceAtCoord(piece, p);
+            chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
+
+            piece->setPosition(p);
+
+            returnValue = !chessBoard->checkForChecks(piece->getTeam());
+
+            chessBoard->setPieceAtCoord(piece, initialPiecePos);
+            piece->setPosition(initialPiecePos);
+            chessBoard->setPieceAtCoord(tempPiece, tempPos);
+            chessBoard->setPieceAtCoord(nullptr, p);
+
+            chessBoard->addToPieceList(tempPiece);
+        }
+        else{
+            chessBoard->setPieceAtCoord(piece, p);
+            chessBoard->setPieceAtCoord(nullptr, initialPiecePos);
+            piece->setPosition(p);
+
+            returnValue = !chessBoard->checkForChecks(piece->getTeam());
+
+            piece->setPosition(initialPiecePos);
+            chessBoard->setPieceAtCoord(nullptr, p);
+            chessBoard->setPieceAtCoord(piece, initialPiecePos);
+        }
     }
     else{
         chessBoard->moveTo(piece, p, false);

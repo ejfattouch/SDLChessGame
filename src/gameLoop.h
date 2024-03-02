@@ -20,6 +20,7 @@ private:
     int turnNumber = 1;
 public:
     gameLoop();
+    gameLoop(std::string FEN);
     void run();
 private:
     void renderGameElements();
