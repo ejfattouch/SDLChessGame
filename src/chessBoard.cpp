@@ -91,7 +91,7 @@ std::string ChessBoard::getFENFromPos() {
             if (pieceOnSquare == nullptr){
                 numOfEmptySquares++;
             }
-            if (rank == 7 || pieceOnSquare != nullptr){
+            if (file == 7 || pieceOnSquare != nullptr){
                 if (numOfEmptySquares > 0){
                     positionFEN += std::to_string(numOfEmptySquares);
                     numOfEmptySquares = 0;

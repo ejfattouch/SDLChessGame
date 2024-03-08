@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 #include "sdlHandler.h"
+#include <vector>
 #include <string>
 
 class Piece {
