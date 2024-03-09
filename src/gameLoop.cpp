@@ -1,15 +1,22 @@
 #include "gameLoop.h"
 #include <memory>
 #include <iostream>
+#include <unordered_set>
+#include <sstream>
 
 gameLoop::gameLoop()
 : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
     chessBoard = std::make_unique<ChessBoard>(&handler);
 //    chessBoard = std::make_unique<ChessBoard>(&handler, "3k4/8/3bp3/8/3K4/8/8/8 b");
 
+    // Add initial position of the board to the positionCountMap
+    std::istringstream ss(chessBoard->getFENFromPos());
+    std::string FENPart;
+    ss >> FENPart;
+    positionCountMap[FENPart] = 1;
 }
 
-gameLoop::gameLoop(std::string FEN)
+gameLoop::gameLoop(const std::string& FEN)
         : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
     chessBoard = std::make_unique<ChessBoard>(&handler, FEN);
 }
@@ -23,12 +30,23 @@ void gameLoop::run() {
         // SDL_WaitEvent() pauses cpu execution until the next event is recorded.
         while (SDL_WaitEvent(&handler.event)) {
             if (handler.event.type == SDL_QUIT) {
-                running = false;
-                break;
+                return;
             }
             else if (handler.event.type == SDL_MOUSEBUTTONDOWN){
                 mouseDownEvent();
                 renderGameElements();
+
+                if (isCheckMate()){
+                    std::string winningTeam = chessBoard->getCurrentTurn() == Piece::WHITE ? "Black" : "White";
+                    std::cout << winningTeam + " has won." << std::endl;
+                    running = false;
+                    goto gameEndScreen;
+                }
+                if (isDraw()){
+                    std::cout << "The Game Ended in a draw" << std::endl;
+                    running = false;
+                    goto gameEndScreen;
+                }
             }
             else if (handler.event.type == SDL_KEYUP){
                 // If 'f' is pressed, flip the board
@@ -36,9 +54,51 @@ void gameLoop::run() {
                     chessBoard->flipBoardOrientation();
                     std::cout << "The board has been flipped" << std::endl;
                 }
+                // If 'D' is pressed ask for draw by agreement
+                else if (handler.event.key.keysym.sym == 100){
+                    if (!userRequestsDraw){
+                        userRequestsDraw = true;
+                        std::cout << "Would you like to accept the draw? Press D to accept the draw or X to refuse it (1/2)" << std::endl;
+                    }
+                    else {
+                        std::cout << "The Game Ended in a draw by agreement" << std::endl;
+                        running = false;
+                        goto gameEndScreen;
+                    }
+                }
+                // If 'R' is pressed, then ask for confirmation of resignation
+                else if (handler.event.key.keysym.sym == 114){
+                    if (!userRequestResignation){
+                        std::cout << "Press R again to confirm your resignation. Press X to cancel." << std::endl;
+                        userRequestResignation = true;
+                    }
+                    else{
+                        std::string winningTeam = chessBoard->getCurrentTurn() == Piece::WHITE ? "Black" : "White";
+                        std::cout << winningTeam + " has won by resignation." << std::endl;
+                        running = false;
+                        goto gameEndScreen;
+                    }
+                }
+                // If X is pressed, cancel draw or resignation request
+                else if (handler.event.key.keysym.sym == 120){
+                    userRequestsDraw = false;
+                    userRequestResignation = false;
+                }
+
                 renderGameElements();
             }
         }
+    }
+
+    gameEndScreen:
+    // Render all game elements one last time
+    // Quit only when user chooses to exit the application
+    renderGameElements();
+    while (SDL_WaitEvent(&handler.event)){
+        if (handler.event.type == SDL_QUIT){
+            return;
+        }
+
     }
 }
 
@@ -72,7 +132,18 @@ void gameLoop::mouseDownEvent() {
     else{
         // Check if the move is contained in the list of possible moves for the piece
         if (chessBoard->canMoveTo(v, piecePos)){
+            Piece* pieceOnSquare = chessBoard->getPieceAtCoord(piecePos);
+
             chessBoard->moveTo(pieceAtFirstPos, piecePos);
+
+            userRequestsDraw = false;
+
+            // These three lines of code are just to handle trimming the FEN
+            // to keep only the position part of the string
+            std::istringstream ss(chessBoard->getFENFromPos());
+            std::string FENPart;
+            ss >> FENPart;
+            positionCountMap[FENPart]++; // Add the FEN of the position to the positionCountMap
 
             if (chessBoard->checkForChecks(Piece::WHITE)){
                 std::cout << "White is in check" << std::endl;
@@ -86,7 +157,12 @@ void gameLoop::mouseDownEvent() {
                 turnNumber++;
             }
 
+            // Checks if the move is either a pawn move or a capture to implement 50-move draw
+            if (pieceOnSquare != nullptr || pieceAtFirstPos->getPieceType() == Piece::PAWN){
+                lastPawnMoveOrCapture = turnNumber;
+            }
             std::cout << "Turn: " << turnNumber << " " << chessBoard->getFENFromPos() << std::endl;
+            std::cout << "LastPawnMoveOrCapture: " << lastPawnMoveOrCapture << std::endl;
         }
         //chessBoard->flipBoardOrientation();
         firstClickOnPiece = false;
@@ -96,10 +172,6 @@ void gameLoop::mouseDownEvent() {
 std::vector<Position> gameLoop::calculateLegalMovesWithRespectToChecks(Piece* piece) {
     std::vector<Position> legalMovesBeforeVerif = chessBoard->calculateLegalMoves(piece);
     std::vector<Position> legalMovesAfterVerif;
-
-    Piece::Team pTeam = piece->getTeam();
-
-    bool initiallyInCheck = chessBoard->checkForChecks(pTeam);
 
     for (Position p: legalMovesBeforeVerif) {
         if (simulateMoveAndCheckForCheck(piece, p)){
@@ -181,3 +253,136 @@ bool gameLoop::simulateMoveAndCheckForCheck(Piece *piece, Position p) {
     return returnValue;
 }
 
+bool gameLoop::isDraw() {
+    // These three lines of code are just to handle trimming the FEN
+    // to keep only the position part of the string
+    std::istringstream ss(chessBoard->getFENFromPos());
+    std::string FENPart;
+    ss >> FENPart;
+
+    return isStalemate() || isFiftyMoveRule() || isThreeFoldRepetition(FENPart)
+            || isDeadPosition();
+}
+
+bool gameLoop::isThreeFoldRepetition(const std::string& FEN) {
+    return positionCountMap[FEN] >= 3;
+}
+
+bool gameLoop::isFiftyMoveRule() const {
+    return (turnNumber - lastPawnMoveOrCapture)>=50;
+}
+
+bool gameLoop::isStalemate() {
+    Piece::Team currentTeam = chessBoard->getCurrentTurn();
+    std::vector<Piece*> teamPieces = chessBoard->getPieceList(currentTeam);
+
+    // Check all possible moves for every piece on the current player's turn
+    for (Piece* p : teamPieces){
+        std::vector<Position> legalMoves = calculateLegalMovesWithRespectToChecks(p);
+        // If move is possible then it is not stalemate.
+        if (!legalMoves.empty()){
+            return false;
+        }
+    }
+    return true;
+}
+
+bool gameLoop::isCheckMate() {
+    Piece::Team team = chessBoard->getCurrentTurn();
+    King* king = chessBoard->getKing(team);
+
+    // This works because stalemate checks if there are no legal moves left
+    // Plus, if the king is in check and there are no legal moves, then the game ends with checkmate
+    return king->isInCheck() && isStalemate();
+}
+
+bool gameLoop::isDeadPosition() {
+    std::vector<Piece*> blackPieces = chessBoard->getPieceList(Piece::BLACK);
+    std::vector<Piece*> whitePieces = chessBoard->getPieceList(Piece::WHITE);
+
+    // Return true if the only piece in the piece list is the kings
+    if (blackPieces.size() + whitePieces.size() == 2){
+        return true;
+    }
+
+    // Checking for other dead position criteria
+    int blackKnight = 0, whiteKnight = 0, blackBishops = 0, whiteBishops = 0,
+            blackWhiteBishop = 0, blackBlackBishop = 0, whiteBlackBishop = 0,
+            whiteWhiteBishop = 0;
+
+    // Process black piece list
+    for (Piece* piece : blackPieces){
+        if (piece->getPieceType() == Piece::KNIGHT){
+            blackKnight++;
+            if (blackKnight >= 2){
+                return false;
+            }
+        }
+        else if (piece->getPieceType() == Piece::BISHOP){
+            blackBishops++;
+            if (blackBishops >= 2){
+                return false;
+            }
+            Position p = piece->getPosition();
+            // Due to the way I have set up the coordinates system if x + y is even
+            // then the bishop is on a dark square
+            if ((p.xCoord + p.yCoord) % 2 == 0){
+                blackBlackBishop++;
+            }
+            else{
+                blackWhiteBishop++;
+            }
+        }
+        else{
+            // If piece is not a king, return false since bishop and knight have already been processed
+            if (piece->getPieceType() != Piece::KING){
+                return false;
+            }
+        }
+    }
+
+    // Process white piece list
+    for (Piece* piece: whitePieces){
+        if (piece->getPieceType() == Piece::KNIGHT){
+            whiteKnight++;
+            if (whiteKnight >= 2){
+                return false;
+            }
+        }
+        else if (piece->getPieceType() == Piece::BISHOP){
+            whiteBishops++;
+            if (whiteBishops >= 2){
+                return false;
+            }
+            Position p = piece->getPosition();
+            // Due to the way I have set up the coordinates system if x + y is even
+            // then the bishop is on a dark square
+            if ((p.xCoord + p.yCoord) % 2 == 0){
+                whiteBlackBishop++;
+            }
+            else{
+                whiteWhiteBishop++;
+            }
+        }
+        else{
+            // If piece is not a king, return false since bishop and knight have already been processed
+            if (piece->getPieceType() != Piece::KING){
+                return false;
+            }
+        }
+    }
+    // When the function reaches this point, the only possible
+    // pieces remaining are the kings, the bishops and the knights
+
+    // Checks for king vs king + bishop
+    bool kingAndBishopVsKing = abs(blackBishops - whiteBishops) == 1 &&
+                                (whiteKnight + blackKnight == 0);
+    // Checks for king + bishop vs king + bishop of the same color
+    bool bishopVsSameColor = (whiteWhiteBishop + blackWhiteBishop == 2) ||
+                                (whiteBlackBishop + blackBlackBishop == 2);
+    // Checks for king vs king + knight
+    bool kingAndKnightVsKing = abs(blackKnight - whiteKnight) == 1 &&
+                                (whiteBishops + blackBishops == 0);
+
+    return kingAndBishopVsKing || bishopVsSameColor || kingAndKnightVsKing;
+}

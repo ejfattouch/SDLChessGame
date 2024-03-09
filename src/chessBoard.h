@@ -60,6 +60,11 @@ public:
     void removeFromPieceList(Piece*);
     void addToPieceList(Piece*);
 
+    // Returns the requested color's list of pieces including the king
+    std::vector<Piece*> getPieceList(Piece::Team);
+    // Returns the requested color's king
+    King* getKing(Piece::Team);
+
 private:
     std::vector<Position> calculateSlidingPieceLegalMove(std::vector<std::pair<int,int>>, Piece*);
     void changePlayerTurn();

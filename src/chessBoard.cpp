@@ -514,11 +514,12 @@ bool ChessBoard::checkForChecks(Piece::Team pTeam) {
         std::vector<Position> pseudoMoves = calculateLegalMoves(ennemyPiece);
         for (Position p: pseudoMoves){
             if (p == kingPos){
+                king->setCheck();
                 return true;
             }
         }
     }
-
+    king->setCheck(false);
     std::vector<Position> pseudoMoves = ennemyKing->calculatePseudoMoves();
 
     return std::any_of(pseudoMoves.begin(), pseudoMoves.end(),
@@ -555,5 +556,27 @@ void ChessBoard::addToPieceList(Piece* piece) {
     }
     else{
         blackPieces.push_back(piece);
+    }
+}
+
+std::vector<Piece*> ChessBoard::getPieceList(Piece::Team pTeam) {
+    std::vector<Piece*> pieceList;
+    if (pTeam == Piece::WHITE){
+        std::copy(whitePieces.begin(), whitePieces.end(), std::back_inserter(pieceList));
+        pieceList.push_back(whiteKing);
+    }
+    else{
+        std::copy(blackPieces.begin(), blackPieces.end(), std::back_inserter(pieceList));
+        pieceList.push_back(blackKing);
+    }
+    return pieceList;
+}
+
+King* ChessBoard::getKing(Piece::Team pTeam) {
+    if (pTeam == Piece::WHITE){
+        return whiteKing;
+    }
+    else{
+        return blackKing;
     }
 }
