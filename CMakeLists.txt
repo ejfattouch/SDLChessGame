@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/queen.cpp
         src/king.cpp
         src/slidingPiece.h
+        src/promotionWindow.cpp
 )
 
 # --- SDL2 SETUP ---

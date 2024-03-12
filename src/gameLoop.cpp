@@ -1,4 +1,5 @@
 #include "gameLoop.h"
+#include "promotionWindow.h"
 #include <memory>
 #include <iostream>
 #include <unordered_set>
@@ -6,8 +7,8 @@
 
 gameLoop::gameLoop()
 : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
-    chessBoard = std::make_unique<ChessBoard>(&handler);
-//    chessBoard = std::make_unique<ChessBoard>(&handler, "3k4/8/3bp3/8/3K4/8/8/8 b");
+//    chessBoard = std::make_unique<ChessBoard>(&handler);
+    chessBoard = std::make_unique<ChessBoard>(&handler, "3k4/p6P/3bp3/8/3K4/8/8/8 w");
 
     // Add initial position of the board to the positionCountMap
     std::istringstream ss(chessBoard->getFENFromPos());
@@ -29,12 +30,16 @@ void gameLoop::run() {
     while (running) {
         // SDL_WaitEvent() pauses cpu execution until the next event is recorded.
         while (SDL_WaitEvent(&handler.event)) {
+            if (pawnIsAtPromotionSquare){
+                goto pawnPromotionScreen;
+            }
+
+            mainGameLoop:
             if (handler.event.type == SDL_QUIT) {
                 return;
             }
             else if (handler.event.type == SDL_MOUSEBUTTONDOWN){
                 mouseDownEvent();
-                renderGameElements();
 
                 if (isCheckMate()){
                     std::string winningTeam = chessBoard->getCurrentTurn() == Piece::WHITE ? "Black" : "White";
@@ -84,11 +89,12 @@ void gameLoop::run() {
                     userRequestsDraw = false;
                     userRequestResignation = false;
                 }
-
-                renderGameElements();
             }
+            renderGameElements();
         }
     }
+
+
 
     gameEndScreen:
     // Render all game elements one last time
@@ -98,14 +104,81 @@ void gameLoop::run() {
         if (handler.event.type == SDL_QUIT){
             return;
         }
-
     }
+
+    pawnPromotionScreen:
+    Piece::Team promotionTeam;
+    if (chessBoard->getCurrentTurn() == Piece::WHITE){
+        promotionTeam = Piece::BLACK;
+    }
+    else{
+        promotionTeam = Piece::WHITE;
+    }
+    PromotionWindow promotionWindow(&handler, promotionTeam);
+
+    handler.drawBoard();
+    promotionWindow.displaySelectionScreen();
+    while (SDL_WaitEvent(&handler.event)){
+        if (handler.event.type == SDL_QUIT){
+            return;
+        }
+        if (handler.event.type == SDL_MOUSEBUTTONDOWN){
+            Position mousePos = promotionWindow.getMouseClickCoords();
+
+            std::cout << mousePos.xCoord << " " << mousePos.yCoord << std::endl;
+
+            if (mousePos.xCoord != -1){
+                Piece* promotionPiece;
+
+                int selection = mousePos.xCoord/(promotionWindow.getWindowWidth()/4);
+                switch (selection) {
+                    case (0):
+                        std::cout << "Queen" << std::endl;
+                        promotionPiece = new Queen(promotionTeam, pieceAtFirstPos->getPosition(), &handler);
+                        break;
+                    case (1):
+                        std::cout << "Knight" << std::endl;
+                        promotionPiece = new Knight(promotionTeam, pieceAtFirstPos->getPosition(), &handler);
+                        break;
+                    case (2):
+                        std::cout << "Rook" << std::endl;
+                        promotionPiece = new Rook(promotionTeam, pieceAtFirstPos->getPosition(), &handler);
+                        break;
+                    case (3):
+                        std::cout << "Bishop" << std::endl;
+                        promotionPiece = new Bishop(promotionTeam, pieceAtFirstPos->getPosition(), &handler);
+                        break;
+                    default:
+                        std::cout << "The value is unnexpected" << std::endl;
+                        continue;
+                }
+                chessBoard->removeFromPieceList(pieceAtFirstPos);
+                chessBoard->addToPieceList(promotionPiece);
+                chessBoard->setPieceAtCoord(promotionPiece, pieceAtFirstPos->getPosition());
+
+                delete pieceAtFirstPos;
+
+                break;
+
+            }
+        }
+        handler.drawBoard();
+        promotionWindow.displaySelectionScreen();
+    }
+
+    pawnIsAtPromotionSquare = false;
+    renderGameElements();
+    handleFenAndChecks();
+    lastPawnMoveOrCapture = turnNumber;
+    firstClickOnPiece = false;
+
+    goto mainGameLoop;
 }
 
 void gameLoop::renderGameElements() {
     SDL_RenderClear(handler.renderer);
     handler.drawBoard();
-    if (firstClickOnPiece){
+    if (firstClickOnPiece && !pawnIsAtPromotionSquare){
         handler.drawDarkerSquare(squarePos.xCoord, squarePos.yCoord);
         chessBoard->renderAllPossibleMoves(v);
     }
@@ -135,27 +208,17 @@ void gameLoop::mouseDownEvent() {
             Piece* pieceOnSquare = chessBoard->getPieceAtCoord(piecePos);
 
             chessBoard->moveTo(pieceAtFirstPos, piecePos);
+            userRequestsDraw = false; // If the user plays a move after requesting a draw, cancel the draw request
 
-            userRequestsDraw = false;
-
-            // These three lines of code are just to handle trimming the FEN
-            // to keep only the position part of the string
-            std::istringstream ss(chessBoard->getFENFromPos());
-            std::string FENPart;
-            ss >> FENPart;
-            positionCountMap[FENPart]++; // Add the FEN of the position to the positionCountMap
-
-            if (chessBoard->checkForChecks(Piece::WHITE)){
-                std::cout << "White is in check" << std::endl;
-            }
-            if (chessBoard->checkForChecks(Piece::BLACK)){
-                std::cout << "Black is in check" << std::endl;
+            if (pieceAtFirstPos->getPieceType() == Piece::PAWN){
+                Pawn* pushedPawn = dynamic_cast<Pawn*>(pieceAtFirstPos);
+                if (pushedPawn->isOnPromotionRank()){
+                    pawnIsAtPromotionSquare = true;
+                    return;
+                }
             }
 
-
-            if (chessBoard->getCurrentTurn() == Piece::WHITE){
-                turnNumber++;
-            }
+            handleFenAndChecks();
 
             // Checks if the move is either a pawn move or a capture to implement 50-move draw
             if (pieceOnSquare != nullptr || pieceAtFirstPos->getPieceType() == Piece::PAWN){
@@ -385,4 +448,24 @@ bool gameLoop::isDeadPosition() {
                                 (whiteBishops + blackBishops == 0);
 
     return kingAndBishopVsKing || bishopVsSameColor || kingAndKnightVsKing;
+}
+
+void gameLoop::handleFenAndChecks() {
+    // These three lines of code are just to handle trimming the FEN
+    // to keep only the position part of the string
+    std::istringstream ss(chessBoard->getFENFromPos());
+    std::string FENPart;
+    ss >> FENPart;
+    positionCountMap[FENPart]++; // Add the FEN of the position to the positionCountMap
+
+    if (chessBoard->checkForChecks(Piece::WHITE)){
+        std::cout << "White is in check" << std::endl;
+    }
+    if (chessBoard->checkForChecks(Piece::BLACK)){
+        std::cout << "Black is in check" << std::endl;
+    }
+
+    if (chessBoard->getCurrentTurn() == Piece::WHITE){
+        turnNumber++;
+    }
 }

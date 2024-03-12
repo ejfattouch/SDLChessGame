@@ -13,6 +13,7 @@ private:
 
     bool running;
     bool firstClickOnPiece;
+    bool pawnIsAtPromotionSquare  = false;
 
     bool userRequestsDraw = false;
     bool userRequestResignation = false;
@@ -47,4 +48,6 @@ private:
     // Checks for dead position according to rules established in
     // https://www.chess.com/terms/draw-chess
     bool isDeadPosition();
+
+    void handleFenAndChecks();
 };

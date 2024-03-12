@@ -95,7 +95,7 @@ void SDLHandler::renderFrame() const {
     SDL_RenderPresent(renderer);
 }
 
-SDL_Texture *SDLHandler::loadImageFromPng(const std::string& fileName) const{
+SDL_Texture* SDLHandler::loadImageFromPng(const std::string& fileName) const{
     SDL_Surface* loadedImage;
     loadedImage = IMG_Load(fileName.c_str());
 

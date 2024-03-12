@@ -88,3 +88,12 @@ Position Pawn::getEnPassantMove() {
     }
     return {};
 }
+
+bool Pawn::isOnPromotionRank() {
+    if (team == Piece::WHITE){
+        return pPos.yCoord == 7;
+    }
+    else{
+        return pPos.yCoord == 0;
+    }
+}
