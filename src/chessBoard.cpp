@@ -194,6 +194,22 @@ void ChessBoard::renderAllPieces() {
 
 void ChessBoard::moveTo(Piece* piece, Position endPos, bool activateChangeTurn) {
     Position startPos = piece->getPosition();
+
+    // Checks if the piece is a rook to disable that side's castling since the rook has moved
+    if (piece->getPieceType() == Piece::ROOK && activateChangeTurn){
+        Piece::Team pTeam = piece->getTeam();
+        King* king = getKing(pTeam);
+
+        if (king->isCastleEnabledForPiece()){
+            if (startPos.xCoord == 0){ // Queen side castling
+                king->deactivateQueenSide();
+            }
+            else if (startPos.xCoord == 7){
+                king->deactivateKingSide();
+            }
+        }
+    }
+
     piece->setPosition(endPos);
 
     // Set the square where the piece departed to nullptr
@@ -214,7 +230,7 @@ void ChessBoard::moveTo(Piece* piece, Position endPos, bool activateChangeTurn) 
 
     // Check if piece is king and deactivate castling if true
     Piece::PieceType pType = piece->getPieceType();
-    if (pType == Piece::KING){
+    if (pType == Piece::KING && activateChangeTurn){
         King* kingPtr = dynamic_cast<King*>(piece);
         kingPtr->deactivateCastling();
     }
@@ -315,13 +331,13 @@ std::vector<Position> ChessBoard::calculateLegalMoves(Piece* piece) {
 
                 // Checks for regular king moves
                 if (boardArr[x][y] == nullptr){
-                    moveTo(piece,p);
+                    moveTo(piece,p, false);
 
                     if (!checkForChecks(piece->getTeam())){
                         legalMoves.push_back(p);
                     }
 
-                    moveTo(piece, initPos);
+                    moveTo(piece, initPos, false);
                     continue;
                 }
                 else if (boardArr[x][y]->getTeam() != pTeam){
@@ -519,6 +535,7 @@ bool ChessBoard::checkForChecks(Piece::Team pTeam) {
             }
         }
     }
+    // Set the king check status to false when the loop ends
     king->setCheck(false);
     std::vector<Position> pseudoMoves = ennemyKing->calculatePseudoMoves();
 
@@ -579,4 +596,73 @@ King* ChessBoard::getKing(Piece::Team pTeam) {
     else{
         return blackKing;
     }
+}
+
+bool ChessBoard::canCastle(Piece *kingPtr, int side) {
+    if (side != 0 && side != 1){
+        throw std::invalid_argument("Received value for side that is neither 0 or 1");
+    }
+
+    King* king = dynamic_cast<King*>(kingPtr);
+
+    if (checkForChecks(king->getTeam())){
+        return false;
+    }
+
+    if (!king->isCastleEnabledForPiece()){
+        return false;
+    }
+
+    Position kingPos = king->getPosition();
+    Piece::Team kingTeam = king->getTeam();
+    if (side==0 && king->canCastleQueenSide()){
+        // check if there are pieces in between king and rook
+        Position squarePos{};
+        for (int x = 1; x < 4; x++){
+            squarePos = {x, kingPos.yCoord};
+            if (getPieceAtCoord(squarePos) != nullptr){
+                return false;
+            }
+        }
+
+        // Check if moving king to position puts it in check
+        for (int x = 2; x < 4; x++){ // check x = 3 and x = 2
+            squarePos = {x, kingPos.yCoord};
+            king->setPosition(squarePos);
+
+            if (checkForChecks(kingTeam)){
+                king->setPosition(kingPos);
+                return false;
+            }
+        }
+
+        king->setPosition(kingPos);
+        return true;
+    }
+    else if (side == 1 && king->canCastleKingSide()){
+        // check if there are pieces in between king and rook
+        Position squarePos{};
+        for (int x = 6; x > 4; x--){
+            squarePos = {x, kingPos.yCoord};
+            if (getPieceAtCoord(squarePos) != nullptr){
+                return false;
+            }
+        }
+
+        // Check if moving king to position puts it in check
+        for (int x = 6; x > 4; x--){ // check x = 6 and x = 5
+            squarePos = {x, kingPos.yCoord};
+            king->setPosition(squarePos);
+
+            if (checkForChecks(kingTeam)){
+                king->setPosition(kingPos);
+                return false;
+            }
+        }
+
+        king->setPosition(kingPos);
+        return true;
+
+    }
+    return false;
 }

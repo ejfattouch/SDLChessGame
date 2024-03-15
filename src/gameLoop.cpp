@@ -5,10 +5,13 @@
 #include <unordered_set>
 #include <sstream>
 
+#define QUEEN_SIDE 0
+#define KING_SIDE 1
+
 gameLoop::gameLoop()
 : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
 //    chessBoard = std::make_unique<ChessBoard>(&handler);
-    chessBoard = std::make_unique<ChessBoard>(&handler, "3k4/p6P/3bp3/8/3K4/8/8/8 w");
+    chessBoard = std::make_unique<ChessBoard>(&handler, "r3k2r/8/8/8/8/8/8/R3K2R w");
 
     // Add initial position of the board to the positionCountMap
     std::istringstream ss(chessBoard->getFENFromPos());
@@ -207,6 +210,27 @@ void gameLoop::mouseDownEvent() {
         if (chessBoard->canMoveTo(v, piecePos)){
             Piece* pieceOnSquare = chessBoard->getPieceAtCoord(piecePos);
 
+            if (pieceAtFirstPos->getPieceType() == Piece::KING) {
+                Position kingPos = pieceAtFirstPos->getPosition();
+
+                if (abs(piecePos.xCoord - kingPos.xCoord) == 2){
+                    Piece* rook;
+                    Position rookPos{};
+                    if (piecePos.xCoord == 6){
+                        rookPos = {7, kingPos.yCoord};
+                        rook = chessBoard->getPieceAtCoord(rookPos);
+                        rookPos.xCoord = 5;
+                        chessBoard->moveTo(rook, rookPos, false);
+                    }
+                    else if (piecePos.xCoord == 2){
+                        rookPos = {0, kingPos.yCoord};
+                        rook = chessBoard->getPieceAtCoord(rookPos);
+                        rookPos.xCoord = 3;
+                        chessBoard->moveTo(rook, rookPos, false);
+                    }
+                }
+            }
+
             chessBoard->moveTo(pieceAtFirstPos, piecePos);
             userRequestsDraw = false; // If the user plays a move after requesting a draw, cancel the draw request
 
@@ -239,6 +263,20 @@ std::vector<Position> gameLoop::calculateLegalMovesWithRespectToChecks(Piece* pi
     for (Position p: legalMovesBeforeVerif) {
         if (simulateMoveAndCheckForCheck(piece, p)){
             legalMovesAfterVerif.push_back(p);
+        }
+    }
+
+    if (piece->getPieceType() == Piece::KING){
+        King* king = dynamic_cast<King*>(piece);
+        Position castlePos = king->getPosition();
+
+        if (chessBoard->canCastle(king, QUEEN_SIDE)){
+            castlePos.xCoord = 2;
+            legalMovesAfterVerif.push_back(castlePos);
+        }
+        if (chessBoard->canCastle(king, KING_SIDE)){
+            castlePos.xCoord = 6;
+            legalMovesAfterVerif.push_back(castlePos);
         }
     }
 

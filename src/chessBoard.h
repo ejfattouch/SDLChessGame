@@ -65,6 +65,10 @@ public:
     // Returns the requested color's king
     King* getKing(Piece::Team);
 
+    // If the side is 0 then we are checking for queen side, if the
+    // side is 1 then we are checking king side
+    bool canCastle(Piece* king, int side);
+
 private:
     std::vector<Position> calculateSlidingPieceLegalMove(std::vector<std::pair<int,int>>, Piece*);
     void changePlayerTurn();
