@@ -49,7 +49,7 @@ cmake --build .
 ```    
 ## Usage
 
-1 - Run the executable generated in the `build` directory.
+Run the executable generated in the `build` directory.
 
 
 
