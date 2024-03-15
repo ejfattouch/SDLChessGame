@@ -10,8 +10,8 @@
 
 gameLoop::gameLoop()
 : running{true}, firstClickOnPiece{false}, pieceAtFirstPos{nullptr}{
-//    chessBoard = std::make_unique<ChessBoard>(&handler);
-    chessBoard = std::make_unique<ChessBoard>(&handler, "r3k2r/8/8/8/8/8/8/R3K2R w");
+    chessBoard = std::make_unique<ChessBoard>(&handler);
+//    chessBoard = std::make_unique<ChessBoard>(&handler, "r3k2r/8/8/8/8/8/8/R3K2R w");
 
     // Add initial position of the board to the positionCountMap
     std::istringstream ss(chessBoard->getFENFromPos());
